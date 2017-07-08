@@ -16,7 +16,7 @@ package
 	
 	public class Main extends Sprite 
 	{
-		public var currentRoom:RoomInterface;
+		public var walkInterface:RoomInterface;
 		public var playerAvatar:Avatar;
 		
 		public function Main() 
@@ -25,28 +25,21 @@ package
 			else addEventListener(Event.ADDED_TO_STAGE, init);
 		}
 
-		private function init(e:Event = null):void 
+		private function init(e:Event = null):void
 		{
 			removeEventListener(Event.ADDED_TO_STAGE, init);
-			// entry point.
+			// Entry point.
 			// The game starts here!
-			
-			// Gotta load a room!
-			// The room is actually a basic structure: it's a collection of avatars (one of
-			// which is the main player's), and a background image.
 			
 			playerAvatar = new Avatar();
 			playerAvatar.username = "Hunter";
-			playerAvatar.x = 0;
-			playerAvatar.y = 0;
 			
-			stage.addChild(playerAvatar);
+			walkInterface = new RoomInterface(playerAvatar);
 			
-			currentRoom = new RoomInterface(playerAvatar);
-			stage.addChild(currentRoom);
+			stage.addChild(walkInterface);
 			
-			stage.addEventListener(KeyboardEvent.KEY_DOWN, currentRoom.keyDownHandler);
-			stage.addEventListener(KeyboardEvent.KEY_UP, currentRoom.keyUpHandler);
+			stage.addEventListener(KeyboardEvent.KEY_DOWN, walkInterface.keyDownHandler);
+			stage.addEventListener(KeyboardEvent.KEY_UP, walkInterface.keyUpHandler);
 		}
 	}
 }

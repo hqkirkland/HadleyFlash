@@ -6,6 +6,7 @@ package game
 	
 	import flash.display.BitmapData;
 	import flash.display.Bitmap;
+	import flash.display.DisplayObject;
 	import flash.display.Loader;
 	import flash.display.Sprite;
 	import flash.events.Event;
@@ -27,48 +28,65 @@ package game
 		// 1: idle, 2: walking, 3: sitting, 4: holding
 		public var action:uint;
 		
-		// The array of figure item names for each part.
+		// Array of figure item names for each part.
 		public var itemArray:Array;
 		
-		// The rendered spritesheet with all action/direction frames.
+		// A rendered spritesheet with all action/direction frames.
 		public var spritesheetBmp:Bitmap;
 		
 		// The keys currently triggered.
 		public var keysTriggered:Object = {north: false, south: false, east: false, west: false};
 		
-		// The backup of the triggered keys, used if going idle.
+		// A backup of the triggered keys, used for going to idle state.
 		public var previousKeys:Object = {north: false, south: false, east: false, west: false};
 		
-		// The current animation frame that the user is in.
+		// Current animation frame that the user is in.
 		public var currentFrame:uint;
 		
 		// The current X movement speed of the sprite.
 		public var currentSpeedX:uint;
 		
 		// The current Y movement speed of the sprite.
-		public var currentSpeedY:uint;
+		public var currentSpeedY:uint;		
+		
+		// The current room the avatar is in.
+		public var currentRoom:Sprite;
 		
 		// The cache of all loaded bitmap objects.
 		private static var itemCache:Object;
 		
-		// Point specifying the x and y coords of pixel.
+		// Point specifying the x and y coords of 0, 0 pixel.
 		private static const zeroPoint:Point = new Point(0, 0);
 		
 		// Rectangle to select entire spritesheet.
-		private static const itemRect:Rectangle = new Rectangle(0, 0, 1722, 68);
+		private const itemRect:Rectangle = new Rectangle(0, 0, 1722, 68);
 		
 		// Rectangle to select frame from spritesheet.
-		private static const frameRect:Rectangle = new Rectangle(0, 0, 41, 68);
+		private const frameRect:Rectangle = new Rectangle(0, 0, 41, 68);
+		
+		// Avatar's location on the walkmap.
+		public var mapPoint:Point = new Point(0, 0);
+		
+		// Avatar's current location on stage based on his last keystroke movements.
+		public var currentPoint:Point = new Point(0, 0);
+		
+		// Avatar's next calculated location on stage.
+		public var nextPoint:Point = new Point(0, 0);
+		
+		// Next calculated pixel on the avatar's room walkmap.
+		private var nextMapPixel:uint;
+		
+		private var lastLayer:uint;
 		
 		// Structure of spritesheet.
 		private static var keyFrames:Object = 
 		{ 
-			idle: { north:[0, 0], northeast:[1, 1], east:[2, 2], southeast:[3, 3], south:[4, 4] }, 
-			walk: { north:[5, 10], northeast:[11, 16], east:[17, 22], southeast:[23, 28], south:[29, 34] } 
+			idle: { north:[0, 0], northeast:[1, 1], east:[2, 2], southeast:[3, 3], south:[4, 4] },
+			walk: { north:[5, 10], northeast:[11, 16], east:[17, 22], southeast:[23, 28], south:[29, 34] }
 		}
 		
 		public function Avatar()
-		{
+		{			
 			if (itemCache == null)
 			{
 				itemCache = new Object();
@@ -91,9 +109,11 @@ package game
 			itemArray.forEach(loadItem, null);
 			
 			this.scrollRect = frameRect;
+			this.cacheAsBitmap = true;
 			
-			addEventListener(Event.EXIT_FRAME, doMovement);
 			frameTicker.addEventListener(TimerEvent.TIMER, checkAction);
+			
+			addEventListener(Event.ENTER_FRAME, doMovement);
 		}
 		
 		private function loadItem(itemName:String, index:int, itemNameArray:Array):void
@@ -128,7 +148,11 @@ package game
 			
 			var itemBitmap:Bitmap = new Bitmap(new BitmapData(1722, 68, true, 0x0));
 			itemBitmap.bitmapData.draw(e.assetLoader.content);
+			
+			// Removes the green screen.
 			itemBitmap.bitmapData.threshold(itemBitmap.bitmapData, itemRect, zeroPoint, "==", 0xFF00FF00);
+			
+			// Clips the red pixels.
 			itemBitmap.bitmapData.threshold(itemBitmap.bitmapData, itemRect, zeroPoint, "==", 0xFFFF0000);
 			
 			itemCache[itemArray[indexOfItem]] = itemBitmap;
@@ -170,13 +194,14 @@ package game
 		public function assembleAvatar():void
 		{
 			spritesheetBmp.bitmapData.dispose();
-			spritesheetBmp = new Bitmap(new BitmapData(1722, 68, true));
+			spritesheetBmp.bitmapData = new BitmapData(1722, 68, true, 0x00000000);
 			
 			for (var i:int = 0; i < itemArray.length; i++)
 			{
 				// Make sure it's not a string. Or still BitmapData.
 				if (itemIsCached(itemArray[i]))
 				{
+					trace("Assembling Part " + i + ": " + itemArray[i]);
 					spritesheetBmp.bitmapData.copyPixels(itemCache[itemArray[i]].bitmapData, itemRect, zeroPoint, null, null, true);
 				}
 			}
@@ -208,53 +233,11 @@ package game
 			}
 		}
 		
-		private function doMovement(e:Event):void
-		{
-			if (keysTriggered.north)
-			{
-				// If South is the ONLY key down, the speed should be symetrical to x.
-				if (!keysTriggered.east && !keysTriggered.west)
-				{
-					this.y -= currentSpeedX;
-				}
-				
-				else
-				{
-					this.y -= currentSpeedY;
-				}
-			}
-			
-			else if (keysTriggered.south)
-			{
-				// If South is the ONLY key down, the speed should be symetrical to x.
-				if (!keysTriggered.east && !keysTriggered.west)
-				{
-					this.y += currentSpeedX; 
-				}
-				
-				else
-				{
-					this.y += currentSpeedY;
-				}
-			}
-			
-			if (keysTriggered.west)
-			{
-				this.x -= currentSpeedX;
-			}
-			
-			else if (keysTriggered.east)
-			{
-				this.x += currentSpeedX;
-			
-			}
-		}
-		
 		// Checks and then animates avatar accordingly.
 		// Credits to: payam_sbr
 		// http://stackoverflow.com/users/5862335/payam-sbr
 		private function checkAction(e:TimerEvent):void
-		{			
+		{
 			// Walk animation tester.
 			if (keysTriggered.north && keysTriggered.west)
 			{ animate(keyFrames.walk.northeast); flipSheet(true); }
@@ -314,7 +297,6 @@ package game
 			previousKeys.south = keysTriggered.south;
 			previousKeys.east = keysTriggered.east;
 			previousKeys.west = keysTriggered.west;
-			
 		}
 		
 		// Animates the avatar's action.
@@ -322,10 +304,9 @@ package game
 		// http://stackoverflow.com/users/5862335/payam-sbr
 		private function animate(currentKeyFrameSet:Array):void 
 		{
-			
 			// Just called with a keyframe of direction (each frame),
-			// If keyframe is already playing, it just moved to next frame and got updated (or initial frame of loop)
-			// Otherwise, just moved to begining frame of new keyframe
+			// If keyframe is already playing, it just moved to next frame and got updated.
+			// Otherwise, just moved to initial frame of new keyframe set.
 			
 			if (currentFrame >= currentKeyFrameSet[0] && currentFrame <= currentKeyFrameSet[1]) 
 			{
@@ -346,6 +327,260 @@ package game
 			
 			// Move Spritesheet inside character Sprite (this)
 			spritesheetBmp.x = -1 * currentFrame * this.width;
+		}
+		
+		private function walkmapTest(nextPoint:Point, color:uint):Boolean
+		{
+			mapPoint.x = currentRoom.walkMap.x;
+			mapPoint.y = currentRoom.walkMap.y;
+			
+			var locationOnBitmapX:Number = nextPoint.x - mapPoint.x;
+			var locationOnBitmapY:Number = nextPoint.y - mapPoint.y;
+			
+			nextMapPixel = currentRoom.walkMap.bitmapData.getPixel(locationOnBitmapX, locationOnBitmapY);
+			
+			if (nextMapPixel != 0)
+			{
+				return true;
+			}
+			
+			else
+			{
+				return false;
+			}
+			
+			return false;
+		}
+		
+		
+		private function checkLayer():void
+		{
+			var avatarStagePoint:Point = currentRoom.localToGlobal(currentPoint);
+			var objStagePoint:Point = new Point(0, 0);
+			
+			var objArr:Array = currentRoom.getObjectsUnderPoint(avatarStagePoint);
+			
+			var avatarLayer:int = currentRoom.getChildIndex(this);
+			
+			var objYAndHeight:int = 0;
+			var objLayerIndex:int = 0;
+			
+			trace("===");
+			
+			for (var i:Number = 0; i < objArr.length; i++)
+			{
+				trace(objArr[i].name);
+				
+				if (objArr[i].name == currentRoom.roomBmp.name || objArr[i].parent.name == this.name)
+				{
+					continue;
+				}
+				
+				objStagePoint = currentRoom.localToGlobal(new Point(objArr[i].x, objArr[i].y));
+				
+				objYAndHeight = objStagePoint.y + objArr[i].height;
+				objLayerIndex = currentRoom.getChildIndex(objArr[i]);
+				
+				if (objYAndHeight < (avatarStagePoint.y + 68) && objLayerIndex > avatarLayer)
+				{
+					currentRoom.setChildIndex(this, objLayerIndex + 1);
+					avatarLayer = objLayerIndex + 1;
+				}
+				
+				else if (objYAndHeight > (avatarStagePoint.y + 68) && objLayerIndex < avatarLayer)
+				{
+					currentRoom.setChildIndex(this, objLayerIndex - 1);
+					avatarLayer = objLayerIndex - 1;
+				}
+			}
+		}
+		
+		private function doMovement(e:Event):void
+		{
+			if (!keysTriggered.north && !keysTriggered.south && !keysTriggered.east && !keysTriggered.west)
+			{
+				return;
+			}
+			
+			currentPoint.x = this.x;
+			currentPoint.y = this.y;
+			
+			nextPoint.x = this.x + 20;
+			nextPoint.y = this.y + 60;
+			
+			if (this.keysTriggered.north)
+			{
+				// If North is the ONLY key down, the speed should be symetrical to x.
+				if (!this.keysTriggered.east && !this.keysTriggered.west)
+				{
+					nextPoint.y = this.y + 58 - this.currentSpeedX;
+					
+					if (walkmapTest(nextPoint, 0xFF231223))
+					{
+						this.y -= this.currentSpeedX;
+						
+						if (parent.y < 0)
+						{
+							if (parent.localToGlobal(new Point(this.x, this.y)).y + 34 < 550 / 2)
+							{
+								parent.y += this.currentSpeedX;
+							}
+						}
+					}
+				}
+				
+				else
+				{
+					if (this.keysTriggered.east)
+					{
+						nextPoint.x = this.x + 18 + this.currentSpeedX;
+						nextPoint.y = this.y + 58 - this.currentSpeedY;
+					}
+					
+					else if (this.keysTriggered.west)
+					{
+						nextPoint.x = this.x - 22 - this.currentSpeedX;
+						nextPoint.y = this.y + 58 - this.currentSpeedY;
+					}					
+					
+					if (walkmapTest(nextPoint, 0xFF231223))
+					{
+						this.y -= this.currentSpeedY;
+						
+						if (parent.y < 0)
+						{
+							if (parent.localToGlobal(new Point(this.x, this.y)).y + 34 < 550 / 2)
+							{
+								parent.y += this.currentSpeedY;
+							}
+						}
+					}
+				}
+			}
+			
+			else if (this.keysTriggered.south)
+			{
+				// If South is the ONLY key down, the speed should be symetrical to x.
+				if (!this.keysTriggered.east && !this.keysTriggered.west)
+				{
+					nextPoint.y = this.y + 67 + this.currentSpeedX;
+					
+					if (walkmapTest(nextPoint, 0xFF231223))
+					{
+						this.y += this.currentSpeedX;
+						
+						if (parent.globalToLocal(new Point(0, 0)).y + 550 < parent.height)
+						{
+							if (parent.localToGlobal(new Point(this.x, this.y)).y + 34 > 550 / 2)
+							{
+								parent.y -= this.currentSpeedX;
+							}
+						}
+					}
+				}
+				
+				else
+				{
+					if (this.keysTriggered.east)
+					{
+						nextPoint.x = this.x + 22 + this.currentSpeedX;
+						nextPoint.y = this.y + 67 + this.currentSpeedY;
+					}
+					
+					else if (this.keysTriggered.west)
+					{
+						nextPoint.x = this.x + 22 - this.currentSpeedX - 41;
+						nextPoint.y = this.y + 67 + this.currentSpeedY;
+					}	
+					
+					if (walkmapTest(nextPoint, 0xFF231223))
+					{
+						this.y += this.currentSpeedY;
+						
+						if (parent.globalToLocal(new Point(0, 0)).y + 550 < parent.height)
+						{
+							if (parent.localToGlobal(new Point(this.x, this.y)).y + 34 > 550 / 2)
+							{
+								parent.y -= this.currentSpeedY;
+							}
+						}
+					}
+				}
+			}			
+			
+			if (this.keysTriggered.west)
+			{
+			    // With West, calculating the next point is tricky. 
+				// The actual X of the player changes when the spritesheep is flipped.
+				// So we need to account for that change. Each frame is 41 pixels wide,
+				// and flipping the sheet takes you back one full frame, without the
+				// following adjustment.
+				
+				if (this.keysTriggered.north)
+				{
+					nextPoint.x = this.x + 10 - this.currentSpeedX - 41;
+					nextPoint.y = this.y + 62 - this.currentSpeedY;
+				}
+				
+				else if (this.keysTriggered.south)
+				{
+					nextPoint.x = this.x + 11 - this.currentSpeedX - 41;
+					nextPoint.y = this.y + 62 + this.currentSpeedY;
+				}
+				
+				else
+				{
+					nextPoint.x = this.x - this.currentSpeedX - 41;
+				}
+				
+				if (walkmapTest(nextPoint, 0xFFFF0000))
+				{
+					this.x -= this.currentSpeedX;
+					
+					if (parent.x < 0)
+					{
+						if (parent.localToGlobal(new Point(this.x, this.y)).x + 20 < 950 / 2)
+						{
+							parent.x += this.currentSpeedX;
+						}
+					}
+				}
+			}
+			
+			else if (this.keysTriggered.east)
+			{
+				if (this.keysTriggered.north)
+				{
+					nextPoint.x = this.x + 30 + this.currentSpeedX;
+					nextPoint.y = this.y + 62 - this.currentSpeedY;
+				}
+				
+				else if (this.keysTriggered.south)
+				{
+					nextPoint.x = this.x + 31 + this.currentSpeedX;
+					nextPoint.y = this.y + 62 + this.currentSpeedY;
+				}			
+				
+				else
+				{
+					nextPoint.x = this.x + 30 + this.currentSpeedX;
+				}
+				
+				if (walkmapTest(nextPoint, 0xFFFF0000))
+				{
+					this.x += this.currentSpeedX;
+					
+					if (parent.globalToLocal(new Point(0, 0)).x + 950 < parent.width)
+					{
+						if (parent.localToGlobal(new Point(this.x, this.y)).x + 20 > 950 / 2)
+						{
+							parent.x -= this.currentSpeedX;
+						}
+					}
+				}
+			}
+			
+			checkLayer();
 		}
 	}
 }

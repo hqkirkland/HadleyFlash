@@ -1,4 +1,4 @@
-package communication 
+package communication
 {
 	import flash.display.Loader;
 	import flash.display.Sprite;
@@ -20,33 +20,32 @@ package communication
 		
 		private var fileRequest:URLRequest;
 		
-		private var fileName:String;
+		private var swfName:String;
 		private var assetName:String;
 		
-		public function FlashLoader(swfName:String, assetClassName:String) 
+		public function FlashLoader(_swfName:String, _assetName:String) 
 		{
-			fileName = swfName;
-			assetName = assetClassName;
+			swfName = _swfName;
+			assetName = _assetName;
 			
-			fileRequest = new URLRequest("../Assets/SWF/" + fileName + ".swf");
+			fileRequest = new URLRequest("../Assets/SWF/" + swfName + ".swf");
 			
 			fileLoader = new Loader();
 			fileLoader.load(fileRequest);
 			fileLoader.contentLoaderInfo.addEventListener(Event.COMPLETE, requestComplete);
 			fileLoader.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, requestError);
-			
 		}
 		
 		public function requestComplete(e:Event):void
 		{
 			trace("Download complete: " + fileRequest.url);
 			removeEventListener(Event.COMPLETE, requestComplete);
-			this.dispatchEvent(new LoadEvent(fileLoader, fileName, LoadEvent.FILE_DOWNLOADED));
+			this.dispatchEvent(new LoadEvent(fileLoader, swfName, LoadEvent.FILE_DOWNLOADED));
 		}
 		
 		public function requestError(e:IOErrorEvent):void
 		{
-			this.dispatchEvent(new LoadEvent(fileLoader, fileName, LoadEvent.FILE_DOWNLOADED));
+			this.dispatchEvent(new LoadEvent(fileLoader, swfName, LoadEvent.FILE_DOWNLOADED));
 		}
 		
 		public function selectSprite(assetName:String):Sprite

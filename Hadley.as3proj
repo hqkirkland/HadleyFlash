@@ -6,12 +6,12 @@
     <movie input="" />
     <movie path="bin\GameClient.swf" />
     <movie fps="30" />
-    <movie width="800" />
-    <movie height="600" />
+    <movie width="950" />
+    <movie height="550" />
     <movie version="21" />
     <movie minorVersion="0" />
     <movie platform="Flash Player" />
-    <movie background="#FFFFFF" />
+    <movie background="#0080C0" />
   </output>
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>
@@ -34,7 +34,7 @@
     <option showInvalidCSS="True" />
     <option showDeprecationWarnings="True" />
     <option showUnusedTypeSelectorWarnings="True" />
-    <option strict="True" />
+    <option strict="False" />
     <option useNetwork="True" />
     <option useResourceBundleMetadata="True" />
     <option warnings="True" />
