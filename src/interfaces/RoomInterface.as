@@ -1,5 +1,6 @@
 package interfaces 
 {
+	import flash.display.DisplayObject;
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.KeyboardEvent;
@@ -20,6 +21,7 @@ package interfaces
 	{
 		public var playerAvatar:Avatar;
 		public var playerAvatar2:Avatar;
+		public var roomReady:Boolean = false;
 		
 		private var mapPoint:Point;
 		private var nextPoint:Point;
@@ -28,8 +30,8 @@ package interfaces
 		
 		public const walkSpeedX:uint = 3;
 		public const walkSpeedY:uint = 1;
-		public const runSpeedX:uint = 6;
-		public const runSpeedY:uint = 3;
+		public const runSpeedX:uint = 5;
+		public const runSpeedY:uint = 2;
 		
 		public function RoomInterface(_playerAvatar:Avatar)
 		{
@@ -41,17 +43,18 @@ package interfaces
 		
 		private function roomDownloaded(e:LoadEvent):void
 		{
-			trace(e.assetLoader.contentLoaderInfo.applicationDomain.hasDefinition(""));
+			// trace(e.assetLoader.contentLoaderInfo.applicationDomain.hasDefinition(""));
 			
 			var RoomInstance:Class = Class(e.assetLoader.contentLoaderInfo.applicationDomain.getDefinition("Main"));
 			
 			playerAvatar.currentRoom = new RoomInstance();
 			
-			playerAvatar.addEventListener(Event.ADDED, roomReady);
+			playerAvatar.currentRoom.addEventListener(Event.ADDED, prepareRoom);
 			addChild(playerAvatar.currentRoom);
+			
 		}
 		
-		private function roomReady(e:Event):void
+		private function prepareRoom(e:Event):void
 		{
 			playerAvatar.currentRoom.addChild(playerAvatar);
 			
@@ -62,10 +65,50 @@ package interfaces
 			
 			playerAvatar.x = localPt.x;
 			playerAvatar.y = localPt.y;
+			
+			roomReady = true;
+		}
+		
+		public function checkLayer():void
+		{
+			var layerCount:int = playerAvatar.currentRoom.numChildren;
+			var objArray:Array = []
+			
+			// BubbleSort algorithm.
+			for (var i:int = 0; i < layerCount - 1; i++)
+			{
+				for (var n:int = i + 1; n < layerCount; n++)
+				{
+					var objectI:DisplayObject = playerAvatar.currentRoom.getChildAt(i);
+					var objectN:DisplayObject = playerAvatar.currentRoom.getChildAt(n); 	
+					
+					if (objectI.y != 0 && objectN.y != 0)
+					{
+						if (objectI.y + objectI.height > objectN.y + objectN.height)
+						{
+							playerAvatar.currentRoom.swapChildrenAt(i, n);
+						}
+					}
+				}
+			}
+			
+			// objArray.sortOn('y', Array.DESCENDING);
+			
+			/*
+			for (var n:int = 0; n < objArray.length; n++)
+			{
+				roomObject = playerAvatar.currentRoom.getChildAt(n);
+				//playerAvatar.currentRoom.removeChild(roomObject);
+				playerAvatar.currentRoom.setChildIndex(roomObject, n);
+				trace(roomObject.name + " Index: " + n);
+			}
+			*/
 		}
 		
 		public function keyDownHandler(e:KeyboardEvent):void
 		{
+			checkLayer();
+
 			if (e.shiftKey)
 			{
 				playerAvatar.currentSpeedX = runSpeedX;

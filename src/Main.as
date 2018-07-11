@@ -40,6 +40,16 @@ package
 			
 			stage.addEventListener(KeyboardEvent.KEY_DOWN, walkInterface.keyDownHandler);
 			stage.addEventListener(KeyboardEvent.KEY_UP, walkInterface.keyUpHandler);
+			
+			addEventListener(Event.ENTER_FRAME, this.frameEntrance);
+		}
+		
+		private function frameEntrance(e:Event):void
+		{
+			if (walkInterface.roomReady)
+			{
+				playerAvatar.doMovement();
+			}
 		}
 	}
 }

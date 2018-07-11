@@ -2,11 +2,11 @@ package game
 {
 	import communication.FlashLoader;
 	import communication.LoadEvent;
+	import flash.utils.Dictionary;
 	import flash.utils.Timer;
-	
+	import flash.display.DisplayObject;
 	import flash.display.BitmapData;
 	import flash.display.Bitmap;
-	import flash.display.DisplayObject;
 	import flash.display.Loader;
 	import flash.display.Sprite;
 	import flash.events.Event;
@@ -112,8 +112,6 @@ package game
 			this.cacheAsBitmap = true;
 			
 			frameTicker.addEventListener(TimerEvent.TIMER, checkAction);
-			
-			addEventListener(Event.ENTER_FRAME, doMovement);
 		}
 		
 		private function loadItem(itemName:String, index:int, itemNameArray:Array):void
@@ -219,7 +217,7 @@ package game
 				if (this.scaleX != -1)
 				{
 					this.scaleX = -1;
-					this.x += 41; // Comment this line to see what happens without this fix.
+					this.x += this.width; // Comment this line to see what happens without this fix.
 				}
 			}
 			
@@ -228,7 +226,7 @@ package game
 				if (this.scaleX != 1)
 				{
 					this.scaleX = 1;
-					this.x -= 41; // Comment this line to see what happens without this fix.
+					this.x -= this.width; // Comment this line to see what happens without this fix.
 				}
 			}
 		}
@@ -350,52 +348,9 @@ package game
 			}
 			
 			return false;
-		}
+		}		
 		
-		
-		private function checkLayer():void
-		{
-			var avatarStagePoint:Point = currentRoom.localToGlobal(currentPoint);
-			var objStagePoint:Point = new Point(0, 0);
-			
-			var objArr:Array = currentRoom.getObjectsUnderPoint(avatarStagePoint);
-			
-			var avatarLayer:int = currentRoom.getChildIndex(this);
-			
-			var objYAndHeight:int = 0;
-			var objLayerIndex:int = 0;
-			
-			trace("===");
-			
-			for (var i:Number = 0; i < objArr.length; i++)
-			{
-				trace(objArr[i].name);
-				
-				if (objArr[i].name == currentRoom.roomBmp.name || objArr[i].parent.name == this.name)
-				{
-					continue;
-				}
-				
-				objStagePoint = currentRoom.localToGlobal(new Point(objArr[i].x, objArr[i].y));
-				
-				objYAndHeight = objStagePoint.y + objArr[i].height;
-				objLayerIndex = currentRoom.getChildIndex(objArr[i]);
-				
-				if (objYAndHeight < (avatarStagePoint.y + 68) && objLayerIndex > avatarLayer)
-				{
-					currentRoom.setChildIndex(this, objLayerIndex + 1);
-					avatarLayer = objLayerIndex + 1;
-				}
-				
-				else if (objYAndHeight > (avatarStagePoint.y + 68) && objLayerIndex < avatarLayer)
-				{
-					currentRoom.setChildIndex(this, objLayerIndex - 1);
-					avatarLayer = objLayerIndex - 1;
-				}
-			}
-		}
-		
-		private function doMovement(e:Event):void
+		public function doMovement():void
 		{
 			if (!keysTriggered.north && !keysTriggered.south && !keysTriggered.east && !keysTriggered.west)
 			{
@@ -579,8 +534,6 @@ package game
 					}
 				}
 			}
-			
-			checkLayer();
 		}
 	}
 }
